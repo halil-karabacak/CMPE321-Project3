@@ -1,0 +1,20 @@
+<form method="post">
+    {% csrf_token %}
+    <label for="user_type">User Type:</label>
+    <select name="user_type" id="user_type">
+        <option value="player">Player</option>
+        <option value="jury">Jury</option>
+        <option value="coach">Coach</option>
+    </select>
+    <label for="username">Username:</label>
+    <input type="text" name="username" required>
+    <label for="password">Password:</label>
+    <input type="password" name="password" required>
+    <label for="name">Name:</label>
+    <input type="text" name="name" required>
+    <label for="surname">Surname:</label>
+    <input type="text" name="surname" required>
+    <label for="additional_info">Additional Info:</label>
+    <input type="text" name="additional_info" required>
+    <button type="submit">Add User</button>
+</form>
