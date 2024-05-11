@@ -1,0 +1,17 @@
+{% block content %}
+    <h1>Welcome, Coach {{ username }}</h1>
+    <p>This is your dashboard.</p>
+    <form method="post" action="{% url 'delete_match_session' %}">
+        {% csrf_token %}
+        <label for="session_id">Enter Session ID to Delete:</label>
+        <input type="number" name="session_id" id="session_id" required>
+        <button type="submit">Delete Match Session</button>
+    </form>
+    {% if messages %}
+        <ul>
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endblock %}

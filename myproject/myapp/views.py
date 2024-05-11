@@ -23,6 +23,12 @@ def authenticate(request):
             user = cursor.fetchone()
             if user:
                 return render(request, 'admin_dashboard.html', {'username': username})
+            else:
+                cursor = connection.cursor()
+                cursor.execute("SELECT * FROM Coach WHERE username = %s AND password = %s", [username, password])
+                user = cursor.fetchone()
+                if user:
+                    return render(request, 'coach_dashboard.html', {'username': username})
             return render(request, 'login.html', {'error': 'Invalid username or password'})
 
 
@@ -82,5 +88,25 @@ def update_stadium_name(request):
         with connection.cursor() as cursor:
             cursor.execute("SELECT stadium_ID, stadium_name FROM Stadium")
             stadiums = cursor.fetchall()
+        return render(request, 'update_stadium.html', {'stadiums': stadiums})
 
-    return render(request, 'update_stadium.html', {'stadiums': stadiums})
+
+def coach_dashboard(request):
+    return render(request, 'coach_dashboard.html', {'username': request.user.username})
+
+def delete_match_session(request):
+    from django.shortcuts import render, redirect
+    from django.db import connection
+    from django.contrib import messages
+    if request.method == 'POST':
+        session_id = request.POST.get('session_id')
+        
+        with connection.cursor() as cursor:
+            cursor.execute("DELETE FROM SessionSquads WHERE session_ID = %s", [session_id])
+            cursor.execute("DELETE FROM MatchSession WHERE session_ID = %s", [session_id])
+            messages.success(request, f'Match session {session_id} and related data deleted successfully.')
+        
+        return redirect('coach_dashboard')
+    else:
+        messages.error(request, 'Invalid request method.')
+        return redirect('coach_dashboard')
