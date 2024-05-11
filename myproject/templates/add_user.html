@@ -1,7 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add User</title>
+<script>
+    function updateForm() {
+        var userType = document.getElementById('user_type').value;
+        var additionalInfoLabel = document.getElementById('additional_info_label');
+        var additionalInfoInput = document.getElementById('additional_info');
+
+        if (userType === 'player') {
+            additionalInfoLabel.textContent = 'Date of Birth:';
+            additionalInfoInput.placeholder = 'YYYY-MM-DD';
+            additionalInfoInput.type = 'text'; // Change this to 'date' if you prefer a date picker
+        } else {
+            additionalInfoLabel.textContent = 'Nationality:';
+            additionalInfoInput.placeholder = 'Country';
+            additionalInfoInput.type = 'text';
+        }
+    }
+</script>
+</head>
+<body>
 <form method="post">
     {% csrf_token %}
     <label for="user_type">User Type:</label>
-    <select name="user_type" id="user_type">
+    <select name="user_type" id="user_type" onchange="updateForm()">
         <option value="player">Player</option>
         <option value="jury">Jury</option>
         <option value="coach">Coach</option>
@@ -14,7 +39,16 @@
     <input type="text" name="name" required>
     <label for="surname">Surname:</label>
     <input type="text" name="surname" required>
-    <label for="additional_info">Additional Info:</label>
-    <input type="text" name="additional_info" required>
+    <label id="additional_info_label" for="additional_info">Additional Info:</label>
+    <input type="text" id="additional_info" name="additional_info" required>
     <button type="submit">Add User</button>
 </form>
+
+<!-- Trigger form update on initial load -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        updateForm();
+    });
+</script>
+</body>
+</html>
