@@ -92,7 +92,10 @@ def update_stadium_name(request):
 
 
 def coach_dashboard(request):
-    return render(request, 'coach_dashboard.html', {'username': request.user.username})
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT username, name, surname FROM Jury")
+        juries = cursor.fetchall()
+        return render(request, 'coach_dashboard.html', {'juries': juries, 'username': request.user.username})
 
 def delete_match_session(request):
     from django.shortcuts import render, redirect
@@ -110,3 +113,42 @@ def delete_match_session(request):
     else:
         messages.error(request, 'Invalid request method.')
         return redirect('coach_dashboard')
+
+
+def fetch_current_team_id(coach_username):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT team_ID FROM Team WHERE coach_username = %s", [coach_username])
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            return None  # Or handle however you deem appropriate if no team is found
+
+
+def add_match_session(request):
+    from django.shortcuts import render, redirect
+    from django.db import connection
+    from django.contrib import messages
+    from django.contrib.auth.decorators import login_required
+    if request.method == 'POST':
+        stadium_id = request.POST.get('stadium_id')
+        date = request.POST.get('date')
+        time_slot = request.POST.get('time_slot')
+        jury_username = request.POST.get('jury_username')
+        
+        # Fetch the coach's current team ID based on the logged-in user
+        current_team_id = fetch_current_team_id(request.user.username)
+        
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO MatchSession (team_ID, stadium_ID, date, time_slot, assigned_jury_username)
+                VALUES (%s, %s, %s, %s, %s)
+            """, [current_team_id, stadium_id, date, time_slot, jury_username])
+            messages.success(request, 'New match session added successfully.')
+        return redirect('coach_dashboard')
+    else:
+        juries = None
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT username, name, surname FROM Jury")
+            juries = cursor.fetchall()
+        return render(request, 'coach_dashboard.html', {'juries': juries})

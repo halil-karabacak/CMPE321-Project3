@@ -14,4 +14,27 @@
             {% endfor %}
         </ul>
     {% endif %}
+    <h2>Add New Match Session</h2>
+    <form method="post" action="{% url 'add_match_session' %}">
+        {% csrf_token %}
+        <label for="stadium_id">Stadium ID:</label>
+        <input type="number" name="stadium_id" id="stadium_id" required>
+
+        <label for="date">Date:</label>
+        <input type="date" name="date" id="date" required>
+
+        <label for="time_slot">Time Slot:</label>
+        <input type="number" name="time_slot" id="time_slot" required>
+
+        <label for="jury_id">Assign Jury:</label>
+        <select name="jury_id" id="jury_id">
+            {% for jury in juries %}
+                <option value="{{ jury.username }}">{{ jury.name }} {{ jury.surname }}</option>
+            {% endfor %}
+        </select>
+        
+
+        <button type="submit">Add Match Session</button>
+    </form>
+
 {% endblock %}
