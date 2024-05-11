@@ -1,0 +1,15 @@
+{% block content %}
+    <h1>Update Stadium Name</h1>
+    <form method="post">
+        {% csrf_token %}
+        <label for="stadium_id">Select Stadium:</label>
+        <select name="stadium_id" id="stadium_id">
+            {% for stadium in stadiums %}
+                <option value="{{ stadium.0 }}">{{ stadium.1 }}</option>
+            {% endfor %}
+        </select>
+        <label for="new_name">New Stadium Name:</label>
+        <input type="text" name="new_name" id="new_name" required>
+        <button type="submit">Update Name</button>
+    </form>
+{% endblock %}

@@ -36,7 +36,7 @@ def add_user(request):
         password = request.POST.get('password')
         name = request.POST.get('name')
         surname = request.POST.get('surname')
-        additional_info = request.POST.get('additional_info')  # This could be date of birth for players, nationality for jury, etc.
+        additional_info = request.POST.get('additional_info') 
 
         query = ""
         if user_type == 'player':
@@ -64,3 +64,23 @@ def add_user(request):
             messages.error(request, 'Invalid user type.')
 
     return render(request, 'add_user.html')
+
+
+def update_stadium_name(request):
+    from django.shortcuts import render, redirect
+    from django.db import connection
+    from django.contrib import messages
+    if request.method == 'POST':
+        stadium_id = request.POST.get('stadium_id')
+        new_name = request.POST.get('new_name')
+        
+        with connection.cursor() as cursor:
+            cursor.execute("UPDATE Stadium SET stadium_name = %s WHERE stadium_ID = %s", [new_name, stadium_id])
+            messages.success(request, 'Stadium name updated successfully.')
+            return redirect('admin_dashboard')
+    else:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT stadium_ID, stadium_name FROM Stadium")
+            stadiums = cursor.fetchall()
+
+    return render(request, 'update_stadium.html', {'stadiums': stadiums})
