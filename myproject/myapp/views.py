@@ -31,9 +31,7 @@ def authenticate(request):
                 cursor.execute("SELECT * FROM Coach WHERE username = %s AND password = %s", [username, password])
                 user = cursor.fetchone()
                 if user:
-                    cursor.execute("SELECT username, name, surname FROM Jury")
-                    juries = cursor.fetchall()
-                    return render(request, 'coach_dashboard.html', {'juries': juries, 'username': username})
+                    return coach_dashboard(request)
                 else:
                     cursor = connection.cursor()
                     cursor.execute("SELECT * FROM Jury WHERE username = %s AND password = %s", [username, password])
@@ -54,12 +52,16 @@ def add_user(request):
         name = request.POST.get('name')
         surname = request.POST.get('surname')
         additional_info = request.POST.get('additional_info') 
+        
+        # Additional fields for players
+        height = request.POST.get('height')
+        weight = request.POST.get('weight')
 
         query = ""
         if user_type == 'player':
             query = """
-            INSERT INTO Player (username, password, name, surname, date_of_birth)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO Player (username, password, name, surname, date_of_birth, height, weight)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             """
         elif user_type == 'jury':
             query = """
@@ -74,9 +76,13 @@ def add_user(request):
         
         if query:
             with connection.cursor() as cursor:
-                cursor.execute(query, [username, password, name, surname, additional_info])
+                # Adjust the parameters passed to the execute function based on the user type
+                if user_type == 'player':
+                    cursor.execute(query, [username, password, name, surname, additional_info, height, weight])
+                else:
+                    cursor.execute(query, [username, password, name, surname, additional_info])
                 messages.success(request, f'New {user_type} added successfully.')
-            return render(request, 'admin_dashboard.html')
+            return render(request, 'admin_dashboard.html', {username: request.session.get('username')})
         else:
             messages.error(request, 'Invalid user type.')
 
@@ -132,10 +138,10 @@ def delete_match_session(request):
             cursor.execute("DELETE FROM MatchSession WHERE session_ID = %s", [session_id])
             messages.success(request, f'Match session {session_id} and related data deleted successfully.')
         
-        return redirect('coach_dashboard')
+        return coach_dashboard(request)
     else:
         messages.error(request, 'Invalid request method.')
-        return redirect('coach_dashboard')
+        return coach_dashboard(request)
 
 
 def fetch_current_team_id(coach_username):
@@ -197,7 +203,6 @@ def create_squad(request):
         current_team_id = fetch_current_team_id(request.session.get('username'))
 
         with connection.cursor() as cursor:
-            # Check if the selected players are valid and part of the coach's team
             valid_players_sql = """
                 SELECT pt.username
                 FROM PlayerTeams pt
@@ -214,11 +219,9 @@ def create_squad(request):
                         VALUES (%s, %s, %s)
                     """, [session_id, player, pos])
             messages.success(request, "Squad created successfully.")
-            return redirect('coach_dashboard')
-
+            return coach_dashboard(request)
     else:
         with connection.cursor() as cursor:
-            # Fetch players and their possible positions
             players_sql = """
                 SELECT pt.username, pp.position
                 FROM PlayerTeams pt
@@ -267,7 +270,6 @@ def jury_dashboard(request):
         return render(request, 'jury_dashboard.html', context)
     
 
-from django.http import HttpResponseRedirect
 def submit_rating(request):
     from django.utils import timezone
     if request.method == 'POST':
@@ -316,7 +318,6 @@ def player_dashboard(request):
         """, [request.session.get('username')])
         all_playmates = [row[0] for row in cursor.fetchall()]
 
-        # Calculate the most frequent playmate(s)
         playmate_counter = Counter(all_playmates)
         max_plays = playmate_counter.most_common(1)[0][1]
         most_frequent_playmates = [playmate for playmate, count in playmate_counter.items() if count == max_plays and playmate != request.session.get('username')]
@@ -335,3 +336,4 @@ def player_dashboard(request):
             'username': request.session.get('username')
         }
         return render(request, 'player_dashboard.html', context)
+   

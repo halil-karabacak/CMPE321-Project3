@@ -14,10 +14,21 @@
             additionalInfoLabel.textContent = 'Date of Birth:';
             additionalInfoInput.placeholder = 'YYYY-MM-DD';
             additionalInfoInput.type = 'text'; // Change this to 'date' if you prefer a date picker
+            document.getElementById('height_label').style.display = 'block';
+            document.getElementById('height_input').style.display = 'block';
+            document.getElementById('weight_label').style.display = 'block';
+            document.getElementById('weight_input').style.display = 'block';
         } else {
-            additionalInfoLabel.textContent = 'Nationality:';
-            additionalInfoInput.placeholder = 'Country';
-            additionalInfoInput.type = 'text';
+            additionalInfoInput.type = 'text'; // Set the input type back to text for non-players
+            if (userType === 'coach' || userType === 'jury') {
+                additionalInfoLabel.textContent = 'Nationality:';
+                additionalInfoInput.placeholder = 'Country';
+            }
+            // Hide height and weight fields for non-players
+            document.getElementById('height_label').style.display = 'none';
+            document.getElementById('height_input').style.display = 'none';
+            document.getElementById('weight_label').style.display = 'none';
+            document.getElementById('weight_input').style.display = 'none';
         }
     }
 </script>
@@ -41,6 +52,11 @@
     <input type="text" name="surname" required>
     <label id="additional_info_label" for="additional_info">Additional Info:</label>
     <input type="text" id="additional_info" name="additional_info" required>
+    <!-- Height and Weight fields for players -->
+    <label id="height_label" style="display: none;" for="height">Height (cm):</label>
+    <input id="height_input" style="display: none;" type="text" name="height">
+    <label id="weight_label" style="display: none;" for="weight">Weight (kg):</label>
+    <input id="weight_input" style="display: none;" type="text" name="weight">
     <button type="submit">Add User</button>
 </form>
 
