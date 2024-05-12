@@ -1,0 +1,14 @@
+{% block content %}
+    <h1>Welcome, Player {{ username }}</h1>
+    <p>This is your dashboard.</p>
+
+    <h2>Players You Have Played With:</h2>
+    <ul>
+        {% for player in played_with_players %}
+            <li>{{ player.0 }} {{ player.1 }}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Height of Most Frequently Played With Player(s):</h2>
+    <p>{{ average_height|floatformat:"2" }} cm</p>
+{% endblock %}

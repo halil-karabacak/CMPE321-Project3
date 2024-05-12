@@ -4,18 +4,30 @@
     {% csrf_token %}
     <div>
         <h3>Select Players and Assign Positions:</h3>
-        {% for player in players %}
+        {% for username, positions in players.items %}
         <div>
-            <label>{{ player.0 }} (Player Username)</label>
+            <input type="checkbox" name="player_usernames" value="{{ username }}" id="player_{{ username }}">
+            <label for="player_{{ username }}">{{ username }} (Player Username)</label>
             <select name="position_ids">
                 <option value="">Select Position</option>
-                <!-- Assuming you have a list of positions; you may need to modify this -->
-                <option value="1">Goalkeeper</option>
-                <option value="2">Defender</option>
-                <option value="3">Midfielder</option>
-                <option value="4">Forward</option>
+                {% for position in positions %}
+                    <option value="{{ position }}">
+                        {% if position == 0 %}
+                            Libero
+                        {% elif position == 1 %}
+                            Setter
+                        {% elif position == 2 %}
+                            Opposite hitter
+                        {% elif position == 3 %}
+                            Outside hitter
+                        {% elif position == 4 %}
+                            Middle blocker
+                        {% else %}
+                            Unknown Position
+                        {% endif %}
+                    </option>
+                {% endfor %}
             </select>
-            <input type="hidden" name="player_usernames" value="{{ player.0 }}">
         </div>
         {% endfor %}
     </div>

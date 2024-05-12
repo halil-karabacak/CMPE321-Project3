@@ -19,8 +19,7 @@ def authenticate(request):
         cursor.execute("SELECT * FROM player WHERE username = %s AND password = %s", [username, password])
         user = cursor.fetchone()
         if user:
-            # Authentication successful, redirect to dashboard or home page
-            return render(request, 'home.html', {'username': username})
+            return player_dashboard(request)
         else:
             cursor = connection.cursor()
             cursor.execute("SELECT * FROM DatabaseManager WHERE username = %s AND password = %s", [username, password])
@@ -35,6 +34,12 @@ def authenticate(request):
                     cursor.execute("SELECT username, name, surname FROM Jury")
                     juries = cursor.fetchall()
                     return render(request, 'coach_dashboard.html', {'juries': juries, 'username': username})
+                else:
+                    cursor = connection.cursor()
+                    cursor.execute("SELECT * FROM Jury WHERE username = %s AND password = %s", [username, password])
+                    user = cursor.fetchone()
+                    if user:
+                        return jury_dashboard(request)
             return render(request, 'login.html', {'error': 'Invalid username or password'})
 
 
@@ -89,7 +94,7 @@ def update_stadium_name(request):
         with connection.cursor() as cursor:
             cursor.execute("UPDATE Stadium SET stadium_name = %s WHERE stadium_ID = %s", [new_name, stadium_id])
             messages.success(request, 'Stadium name updated successfully.')
-            return render(request, 'admin_dashboard.html',  {'username': request.user.username})
+            return render(request, 'admin_dashboard.html',  {'username': request.session.get('username')})
     else:
         with connection.cursor() as cursor:
             cursor.execute("SELECT stadium_ID, stadium_name FROM Stadium")
@@ -99,9 +104,20 @@ def update_stadium_name(request):
 
 def coach_dashboard(request):
     with connection.cursor() as cursor:
+        # Fetch jury details
         cursor.execute("SELECT username, name, surname FROM Jury")
         juries = cursor.fetchall()
-        return render(request, 'coach_dashboard.html', {'juries': juries, 'username': request.user.username})
+
+        # Fetch stadium details
+        cursor.execute("SELECT stadium_name, stadium_country FROM Stadium")
+        stadiums = cursor.fetchall()
+
+        context = {
+            'juries': juries,
+            'stadiums': stadiums,
+            'username': request.session.get('username')
+        }
+        return render(request, 'coach_dashboard.html', context)
 
 
 def delete_match_session(request):
@@ -127,6 +143,7 @@ def fetch_current_team_id(coach_username):
         cursor.execute("SELECT team_ID FROM Team WHERE coach_username = %s", [coach_username])
         result = cursor.fetchone()
         if result:
+            print(result)
             return result[0]
         else:
             return None
@@ -161,7 +178,6 @@ def add_match_session(request):
         return coach_dashboard(request)
     
 
-
 def create_squad(request):
     from django.shortcuts import render, redirect
     from django.db import connection
@@ -170,14 +186,25 @@ def create_squad(request):
     session_id = coach_username_to_session_id[request.session.get('username')]
 
     if request.method == 'POST':
-        player_positions = zip(request.POST.getlist('player_usernames'), request.POST.getlist('position_ids'))
+        player_usernames = request.POST.getlist('player_usernames')
+        position_ids = request.POST.getlist('position_ids')
+        
+        if len(set(player_usernames)) != 6:
+            messages.error(request, "You must select exactly 6 unique players to form a squad.")
+            return redirect('create_squad')
+        
+        player_positions = zip(player_usernames, position_ids)
         current_team_id = fetch_current_team_id(request.session.get('username'))
 
         with connection.cursor() as cursor:
-            
-            cursor.execute("""
-                SELECT username FROM PlayerTeams WHERE team = %s
-            """, [current_team_id])
+            # Check if the selected players are valid and part of the coach's team
+            valid_players_sql = """
+                SELECT pt.username
+                FROM PlayerTeams pt
+                JOIN PlayerPositions pp ON pt.username = pp.username
+                WHERE pt.team = %s
+            """
+            cursor.execute(valid_players_sql, [current_team_id])
             valid_players = {row[0] for row in cursor.fetchall()}
 
             for player, pos in player_positions:
@@ -191,9 +218,120 @@ def create_squad(request):
 
     else:
         with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT username FROM PlayerTeams WHERE team = %s
-            """, [fetch_current_team_id(request.session.get('username'))])
-            players = cursor.fetchall()
+            # Fetch players and their possible positions
+            players_sql = """
+                SELECT pt.username, pp.position
+                FROM PlayerTeams pt
+                JOIN PlayerPositions pp ON pt.username = pp.username
+                WHERE pt.team = %s
+            """
+            cursor.execute(players_sql, [fetch_current_team_id(request.session.get('username'))])
+            players_data = cursor.fetchall()
+
+            players = {}
+            for username, position in players_data:
+                if username not in players:
+                    players[username] = []
+                players[username].append(position)
+
         return render(request, 'create_squad.html', {'players': players, 'session_id': session_id})
 
+
+def jury_dashboard(request):
+    from django.utils import timezone
+    with connection.cursor() as cursor:
+        # Fetch the average rating and count of sessions rated by the logged-in jury
+        cursor.execute("""
+            SELECT AVG(rating) AS average_rating, COUNT(*) AS total_sessions
+            FROM MatchSession
+            WHERE assigned_jury_username = %s AND rating IS NOT NULL
+        """, [request.session.get('username')])
+        result = cursor.fetchone()
+        average_rating = result[0] if result[0] else 0
+        total_sessions = result[1]
+
+        current_date = timezone.now().date().isoformat()
+        cursor.execute("""
+            SELECT session_ID, date, stadium_ID, team_ID
+            FROM MatchSession
+            WHERE assigned_jury_username = %s AND (rating IS NULL OR rating = 0) AND date < %s
+        """, [request.session.get('username'), current_date])
+        unrated_sessions = cursor.fetchall()
+
+        context = {
+            'average_rating': average_rating,
+            'total_sessions': total_sessions,
+            'unrated_sessions': unrated_sessions,
+            'username': request.session.get('username')
+        }
+        return render(request, 'jury_dashboard.html', context)
+    
+
+from django.http import HttpResponseRedirect
+def submit_rating(request):
+    from django.utils import timezone
+    if request.method == 'POST':
+        session_id = request.POST.get('session_id')
+        rating = request.POST.get('rating')
+
+        with connection.cursor() as cursor:
+            # Update the session rating
+            cursor.execute("""
+                UPDATE MatchSession
+                SET rating = %s
+                WHERE session_ID = %s AND assigned_jury_username = %s AND date < %s
+            """, [rating, session_id, request.session.get('username'), timezone.now().date().isoformat()])
+            
+        return jury_dashboard(request)
+
+    return jury_dashboard(request) 
+
+
+def player_dashboard(request):
+    from collections import Counter
+    with connection.cursor() as cursor:
+        # Fetch all players the logged-in player has played with
+        cursor.execute("""
+            SELECT p.name, p.surname
+            FROM Player p
+            JOIN SessionSquads sq ON p.username = sq.played_player_username
+            WHERE sq.session_ID IN (
+                SELECT session_ID
+                FROM SessionSquads
+                WHERE played_player_username = %s
+            ) AND p.username != %s
+            GROUP BY p.username
+        """, [request.session.get('username'), request.session.get('username')])
+        played_with_players = cursor.fetchall()
+
+        # Fetch all session IDs where the logged-in player has played
+        cursor.execute("""
+            SELECT played_player_username
+            FROM SessionSquads
+            WHERE session_ID IN (
+                SELECT session_ID
+                FROM SessionSquads
+                WHERE played_player_username = %s
+            )
+        """, [request.session.get('username')])
+        all_playmates = [row[0] for row in cursor.fetchall()]
+
+        # Calculate the most frequent playmate(s)
+        playmate_counter = Counter(all_playmates)
+        max_plays = playmate_counter.most_common(1)[0][1]
+        most_frequent_playmates = [playmate for playmate, count in playmate_counter.items() if count == max_plays and playmate != request.session.get('username')]
+
+        # Get height information for the most frequent playmate(s)
+        cursor.execute("""
+            SELECT AVG(height)
+            FROM Player
+            WHERE username IN %s
+        """, [tuple(most_frequent_playmates)])
+        average_height = cursor.fetchone()[0]
+
+        context = {
+            'played_with_players': played_with_players,
+            'average_height': average_height,
+            'username': request.session.get('username')
+        }
+        return render(request, 'player_dashboard.html', context)

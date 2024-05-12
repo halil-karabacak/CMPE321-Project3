@@ -1,0 +1,24 @@
+{% block content %}
+    <h1>Welcome, Jury {{ username }}</h1>
+    <p>This is your dashboard.</p>
+
+    <h2>Rating Overview</h2>
+    <p>Average Rating of Sessions Rated: {{ average_rating|floatformat:2 }}</p>
+    <p>Total Sessions Rated: {{ total_sessions }}</p>
+
+    <h2>Rate Sessions</h2>
+    <form method="post" action="{% url 'submit_rating' %}">
+        {% csrf_token %}
+        <label for="session_id">Select Session:</label>
+        <select name="session_id" id="session_id">
+            {% for session in unrated_sessions %}
+                <option value="{{ session.0 }}">Session ID: {{ session.0 }} - Date: {{ session.1 }}</option>
+            {% endfor %}
+        </select>
+        <label for="rating">Rating:</label>
+        <input type="number" name="rating" id="rating" min="1" max="10" required>
+        <button type="submit">Submit Rating</button>
+    </form>
+
+    <!-- Include other dashboard components here as necessary -->
+{% endblock %}

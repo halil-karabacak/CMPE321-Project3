@@ -37,4 +37,18 @@
         <button type="button">Form Squad for Session</button>
     </a>
 
+    <h2>Stadiums</h2>
+    <table>
+        <tr>
+            <th>Stadium Name</th>
+            <th>Country</th>
+        </tr>
+        {% for stadium in stadiums %}
+            <tr>
+                <td>{{ stadium.0 }}</td>
+                <td>{{ stadium.1 }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+
 {% endblock %}

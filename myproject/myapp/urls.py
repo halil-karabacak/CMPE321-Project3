@@ -1,6 +1,6 @@
 # In urls.py
 from django.urls import path
-from .views import login, authenticate, add_user, update_stadium_name, coach_dashboard, delete_match_session, add_match_session, create_squad
+from .views import login, authenticate, add_user, update_stadium_name, coach_dashboard, delete_match_session, add_match_session, create_squad, jury_dashboard, submit_rating
 
 urlpatterns = [
     path('login/', login, name='login'),
@@ -11,4 +11,6 @@ urlpatterns = [
     path('delete_match_session/', delete_match_session, name='delete_match_session'),
     path('add_match_session/', add_match_session, name='add_match_session'),
     path('create_squad/', create_squad, name='create_squad'),
+    path('jury_dashboard/', jury_dashboard, name='jury_dashboard'),
+    path('submit_rating/', submit_rating, name='submit_rating'),
 ]
