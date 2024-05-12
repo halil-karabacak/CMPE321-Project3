@@ -2,6 +2,9 @@ from django.shortcuts import render
 from django.db import connection
 
 
+coach_username_to_session_id = {}
+
+
 def login(request):
     return render(request, 'login.html')
 
@@ -12,6 +15,7 @@ def authenticate(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         cursor = connection.cursor()
+        request.session['username'] = username
         cursor.execute("SELECT * FROM player WHERE username = %s AND password = %s", [username, password])
         user = cursor.fetchone()
         if user:
@@ -28,7 +32,9 @@ def authenticate(request):
                 cursor.execute("SELECT * FROM Coach WHERE username = %s AND password = %s", [username, password])
                 user = cursor.fetchone()
                 if user:
-                    return render(request, 'coach_dashboard.html', {'username': username})
+                    cursor.execute("SELECT username, name, surname FROM Jury")
+                    juries = cursor.fetchall()
+                    return render(request, 'coach_dashboard.html', {'juries': juries, 'username': username})
             return render(request, 'login.html', {'error': 'Invalid username or password'})
 
 
@@ -83,7 +89,7 @@ def update_stadium_name(request):
         with connection.cursor() as cursor:
             cursor.execute("UPDATE Stadium SET stadium_name = %s WHERE stadium_ID = %s", [new_name, stadium_id])
             messages.success(request, 'Stadium name updated successfully.')
-            return redirect('admin_dashboard')
+            return render(request, 'admin_dashboard.html',  {'username': request.user.username})
     else:
         with connection.cursor() as cursor:
             cursor.execute("SELECT stadium_ID, stadium_name FROM Stadium")
@@ -96,6 +102,7 @@ def coach_dashboard(request):
         cursor.execute("SELECT username, name, surname FROM Jury")
         juries = cursor.fetchall()
         return render(request, 'coach_dashboard.html', {'juries': juries, 'username': request.user.username})
+
 
 def delete_match_session(request):
     from django.shortcuts import render, redirect
@@ -122,7 +129,7 @@ def fetch_current_team_id(coach_username):
         if result:
             return result[0]
         else:
-            return None  # Or handle however you deem appropriate if no team is found
+            return None
 
 
 def add_match_session(request):
@@ -135,20 +142,58 @@ def add_match_session(request):
         date = request.POST.get('date')
         time_slot = request.POST.get('time_slot')
         jury_username = request.POST.get('jury_username')
-        
-        # Fetch the coach's current team ID based on the logged-in user
-        current_team_id = fetch_current_team_id(request.user.username)
+        username = request.session.get('username')
+
+        current_team_id = fetch_current_team_id(username)
         
         with connection.cursor() as cursor:
             cursor.execute("""
                 INSERT INTO MatchSession (team_ID, stadium_ID, date, time_slot, assigned_jury_username)
                 VALUES (%s, %s, %s, %s, %s)
             """, [current_team_id, stadium_id, date, time_slot, jury_username])
+            cursor.execute("SELECT LAST_INSERT_ID()")
+            session_id = cursor.fetchone()[0]
+            coach_username_to_session_id[request.session.get('username')] = session_id
+
             messages.success(request, 'New match session added successfully.')
-        return redirect('coach_dashboard')
+        return coach_dashboard(request)
     else:
-        juries = None
+        return coach_dashboard(request)
+    
+
+
+def create_squad(request):
+    from django.shortcuts import render, redirect
+    from django.db import connection
+    from django.contrib import messages
+    
+    session_id = coach_username_to_session_id[request.session.get('username')]
+
+    if request.method == 'POST':
+        player_positions = zip(request.POST.getlist('player_usernames'), request.POST.getlist('position_ids'))
+        current_team_id = fetch_current_team_id(request.session.get('username'))
+
         with connection.cursor() as cursor:
-            cursor.execute("SELECT username, name, surname FROM Jury")
-            juries = cursor.fetchall()
-        return render(request, 'coach_dashboard.html', {'juries': juries})
+            
+            cursor.execute("""
+                SELECT username FROM PlayerTeams WHERE team = %s
+            """, [current_team_id])
+            valid_players = {row[0] for row in cursor.fetchall()}
+
+            for player, pos in player_positions:
+                if player in valid_players:
+                    cursor.execute("""
+                        INSERT INTO SessionSquads (session_ID, played_player_username, position_ID)
+                        VALUES (%s, %s, %s)
+                    """, [session_id, player, pos])
+            messages.success(request, "Squad created successfully.")
+            return redirect('coach_dashboard')
+
+    else:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT username FROM PlayerTeams WHERE team = %s
+            """, [fetch_current_team_id(request.session.get('username'))])
+            players = cursor.fetchall()
+        return render(request, 'create_squad.html', {'players': players, 'session_id': session_id})
+

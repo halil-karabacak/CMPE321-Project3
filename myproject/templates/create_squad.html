@@ -1,0 +1,24 @@
+{% block content %}
+<h2>Create Squad for Session ID: {{ session_id }}</h2>
+<form method="post">
+    {% csrf_token %}
+    <div>
+        <h3>Select Players and Assign Positions:</h3>
+        {% for player in players %}
+        <div>
+            <label>{{ player.0 }} (Player Username)</label>
+            <select name="position_ids">
+                <option value="">Select Position</option>
+                <!-- Assuming you have a list of positions; you may need to modify this -->
+                <option value="1">Goalkeeper</option>
+                <option value="2">Defender</option>
+                <option value="3">Midfielder</option>
+                <option value="4">Forward</option>
+            </select>
+            <input type="hidden" name="player_usernames" value="{{ player.0 }}">
+        </div>
+        {% endfor %}
+    </div>
+    <button type="submit">Create Squad</button>
+</form>
+{% endblock %}
