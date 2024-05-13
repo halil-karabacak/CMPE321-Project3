@@ -53,7 +53,6 @@ def add_user(request):
         surname = request.POST.get('surname')
         additional_info = request.POST.get('additional_info') 
         
-        # Additional fields for players
         height = request.POST.get('height')
         weight = request.POST.get('weight')
 
@@ -76,7 +75,6 @@ def add_user(request):
         
         if query:
             with connection.cursor() as cursor:
-                # Adjust the parameters passed to the execute function based on the user type
                 if user_type == 'player':
                     cursor.execute(query, [username, password, name, surname, additional_info, height, weight])
                 else:
@@ -243,7 +241,6 @@ def create_squad(request):
 def jury_dashboard(request):
     from django.utils import timezone
     with connection.cursor() as cursor:
-        # Fetch the average rating and count of sessions rated by the logged-in jury
         cursor.execute("""
             SELECT AVG(rating) AS average_rating, COUNT(*) AS total_sessions
             FROM MatchSession

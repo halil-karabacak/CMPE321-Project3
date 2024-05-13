@@ -18,9 +18,6 @@ CREATE TABLE DatabaseManager
 (
     username VARCHAR(512),
     password VARCHAR(512),
-    name VARCHAR(512),
-    surname VARCHAR(512),
-    contact_email VARCHAR(512),
     PRIMARY KEY (username)
 );
 
@@ -311,7 +308,13 @@ INSERT INTO Player (username, password, name, surname, date_of_birth, height, we
 INSERT INTO Player (username, password, name, surname, date_of_birth, height, weight) VALUES ('user_2092', 'P.16070', 'Eileen', 'Ryen', '21/6/2004', '188', '60');
 INSERT INTO Player (username, password, name, surname, date_of_birth, height, weight) VALUES ('user_3000', 'P.73005', 'Stephanie', 'White', '19/5/2002', '193', '74');
 INSERT INTO Player (username, password, name, surname, date_of_birth, height, weight) VALUES ('user_8323', 'P.33562', 'Daenerys', 'Targaryen', '16/9/2006', '222', '74');
-INSERT INTO DatabaseManager (username, password, name, surname, contact_email) VALUES ('admin', '1234', 'Daenerys', 'Targaryen', 'ceyhun@admin.com');
+INSERT INTO DatabaseManager (username, password) VALUES ('Kevin', 'Kevin');
+INSERT INTO DatabaseManager (username, password) VALUES ('Bob', 'Bob');
+INSERT INTO DatabaseManager (username, password) VALUES ('sorunlubirarkadas', 'muvaffakiyetsizleştiricileştiriveremeyebileceklerimizdenmişsinizcesine');
+	
+	
+	
+
 INSERT INTO Coach (username, password, name, surname, nationality) VALUES ('coach', '1234', 'Amicia', 'DeRune', 'FR');
 
 
