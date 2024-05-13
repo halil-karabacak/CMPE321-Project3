@@ -330,7 +330,7 @@ BEGIN
     SELECT COUNT(*) INTO conflict_count FROM MatchSession
     WHERE stadium_ID = NEW.stadium_ID
       AND date = NEW.date
-      AND time_slot = NEW.time_slot;
+      AND ABS(time_slot = NEW.time_slot) <= 1;
 
     -- If any existing sessions are found, prevent the insert
     IF conflict_count > 0 THEN
@@ -355,7 +355,7 @@ BEGIN
     JOIN MatchSession new_ms ON new_ms.session_ID = NEW.session_ID
     WHERE sq.played_player_username = NEW.played_player_username
       AND new_ms.date = ms.date
-      AND new_ms.time_slot = ms.time_slot;
+      AND ABS(new_ms.time_slot = ms.time_slot) <= 1;
 
     -- If there is a time conflict, prevent the insert operation
     IF conflict_count > 0 THEN
