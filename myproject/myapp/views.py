@@ -186,7 +186,7 @@ def create_squad(request):
     from django.shortcuts import render, redirect
     from django.db import connection
     from django.contrib import messages
-    
+
     session_id = coach_username_to_session_id[request.session.get('username')]
 
     if request.method == 'POST':
@@ -221,21 +221,27 @@ def create_squad(request):
     else:
         with connection.cursor() as cursor:
             players_sql = """
-                SELECT pt.username, pp.position
+                SELECT pt.username, p.name, p.surname, pp.position
                 FROM PlayerTeams pt
+                JOIN Player p ON pt.username = p.username
                 JOIN PlayerPositions pp ON pt.username = pp.username
                 WHERE pt.team = %s
             """
             cursor.execute(players_sql, [fetch_current_team_id(request.session.get('username'))])
             players_data = cursor.fetchall()
 
-            players = {}
-            for username, position in players_data:
-                if username not in players:
-                    players[username] = []
-                players[username].append(position)
+            players = []
+            player_dict = {}
+            for username, name, surname, position in players_data:
+                if username not in player_dict:
+                    player_dict[username] = {'name': name, 'surname': surname, 'positions': []}
+                player_dict[username]['positions'].append(position)
+
+            for username, details in player_dict.items():
+                players.append({'username': username, 'name': details['name'], 'surname': details['surname'], 'positions': details['positions']})
 
         return render(request, 'create_squad.html', {'players': players, 'session_id': session_id})
+
 
 
 def jury_dashboard(request):

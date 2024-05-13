@@ -4,13 +4,13 @@
     {% csrf_token %}
     <div>
         <h3>Select Players and Assign Positions:</h3>
-        {% for username, positions in players.items %}
+        {% for player in players %}
         <div>
-            <input type="checkbox" name="player_usernames" value="{{ username }}" id="player_{{ username }}">
-            <label for="player_{{ username }}">{{ username }} (Player Username)</label>
+            <input type="checkbox" name="player_usernames" value="{{ player.username }}" id="player_{{ player.username }}">
+            <label for="player_{{ player.username }}">{{ player.name }} {{ player.surname }}</label>
             <select name="position_ids">
                 <option value="">Select Position</option>
-                {% for position in positions %}
+                {% for position in player.positions %}
                     <option value="{{ position }}">
                         {% if position == 0 %}
                             Libero
